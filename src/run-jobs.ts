@@ -29,6 +29,7 @@ export async function runJobs<T, U>(
 
   const results = new Array(inputs.length);
   const runningPromises = new Set();
+  let error: Error | null = null;
 
   function takeInput() {
     const inputIndex = unstartedIndex;
@@ -54,7 +55,7 @@ export async function runJobs<T, U>(
       },
       (err) => {
         runningPromises.delete(promiseWithMore);
-        throw err;
+        error = err;
       }
     );
     runningPromises.add(promiseWithMore);
@@ -69,9 +70,16 @@ export async function runJobs<T, U>(
   }
 
   proceed();
-  while (runningPromises.size > 0) {
-    await Promise.all(runningPromises.values());
+  while (runningPromises.size > 0 && !error) {
+    await Promise.race(runningPromises.values());
+    if (error) {
+      throw error;
+    }
     proceed();
+  }
+
+  if (error) {
+    throw error;
   }
 
   return results;

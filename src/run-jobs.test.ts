@@ -97,7 +97,7 @@ test("if any promise in the mapper throws, the whole thing throws", (done) => {
   expect.assertions(2);
 
   const promise = runJobs([1, 2, 3, 4], async (num) => {
-    if (num === 3) {
+    if (num === 4) {
       throw new Error("uh oh spaghetti-o");
     }
     return num + 1;
