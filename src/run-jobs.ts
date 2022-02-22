@@ -25,51 +25,53 @@ export async function runJobs<T, U>(
 
   concurrency = Math.min(concurrency, inputs.length);
 
-  const total = inputs.length;
   let unstartedIndex = 0;
-  let running = 0;
-  let complete = 0;
 
   const results = new Array(inputs.length);
   const runningPromises = new Set();
 
   function takeInput() {
-    if (complete === total) return;
-    if (running === concurrency) {
-      throw new Error(
-        "Internal error: attempted to run more jobs than allowed."
-      );
-    }
-
     const inputIndex = unstartedIndex;
     unstartedIndex++;
 
     const input = inputs[inputIndex];
-    const promise = mapper(input, inputIndex, total);
-    running++;
+    const promise = mapper(input, inputIndex, inputs.length);
 
-    promise.then(
+    if (
+      typeof promise !== "object" ||
+      promise == null ||
+      typeof promise.then !== "function"
+    ) {
+      throw new Error(
+        "Mapper function passed into runJobs didn't return a Promise. The mapper function should always return a Promise. The easiest way to ensure this is the case is to make your mapper function an async function."
+      );
+    }
+
+    const promiseWithMore = promise.then(
       (result) => {
         results[inputIndex] = result;
-        complete++;
-        runningPromises.delete(promise);
+        runningPromises.delete(promiseWithMore);
       },
       (err) => {
-        runningPromises.delete(promise);
+        runningPromises.delete(promiseWithMore);
         throw err;
       }
     );
-    runningPromises.add(promise);
+    runningPromises.add(promiseWithMore);
+  }
 
-    if (running < concurrency) {
-      takeInput();
+  function proceed() {
+    if (unstartedIndex < inputs.length) {
+      while (runningPromises.size < concurrency) {
+        takeInput();
+      }
     }
   }
 
-  takeInput();
-
+  proceed();
   while (runningPromises.size > 0) {
-    await Promise.race(runningPromises.values());
+    await Promise.all(runningPromises.values());
+    proceed();
   }
 
   return results;
