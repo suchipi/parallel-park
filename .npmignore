@@ -1,0 +1,4 @@
+src/**/*.test.*
+src/test-fixtures
+babel.config.js
+wallaby.js
