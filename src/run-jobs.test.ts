@@ -46,6 +46,21 @@ test("iterable test (generator function)", async () => {
   expect(results).toEqual([2, 3, 4]);
 });
 
+test("iterable test (async generator function)", async () => {
+  const asyncGenFn = async function* () {
+    yield 1;
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    yield 2;
+    yield 3;
+  };
+
+  const results = await runJobs(asyncGenFn(), async (num) => {
+    return num + 1;
+  });
+
+  expect(results).toEqual([2, 3, 4]);
+});
+
 test("iterable test (set)", async () => {
   const set = new Set([1, 2, 3]);
 

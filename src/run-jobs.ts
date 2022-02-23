@@ -7,8 +7,10 @@ function isThenable<T>(value: unknown): value is Promise<T> {
   );
 }
 
+const NOTHING = Symbol("NOTHING");
+
 export async function runJobs<T, U>(
-  inputs: Iterable<T | Promise<T>>,
+  inputs: Iterable<T | Promise<T>> | AsyncIterable<T | Promise<T>>,
   mapper: (input: T, index: number, length: number) => Promise<U>,
   {
     /**
@@ -29,13 +31,18 @@ export async function runJobs<T, U>(
   }
 
   const inputsArray: Array<T> = [];
-  const inputIterator = inputs[Symbol.iterator]();
+  const inputIteratorFactory =
+    inputs[Symbol.asyncIterator || NOTHING] || inputs[Symbol.iterator];
+  const inputIterator = inputIteratorFactory.call(inputs);
   const maybeLength = Array.isArray(inputs) ? inputs.length : null;
 
   let iteratorDone = false;
 
   async function readInput(): Promise<boolean> {
-    const nextResult = inputIterator.next();
+    let nextResult = inputIterator.next();
+    if (isThenable(nextResult)) {
+      nextResult = await nextResult;
+    }
     if (nextResult.done) {
       iteratorDone = true;
       return false;
