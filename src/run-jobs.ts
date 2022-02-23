@@ -1,5 +1,14 @@
+function isThenable<T>(value: unknown): value is Promise<T> {
+  return (
+    typeof value === "object" &&
+    value != null &&
+    // @ts-ignore accessing .then
+    typeof value.then === "function"
+  );
+}
+
 export async function runJobs<T, U>(
-  inputs: Array<T>,
+  inputs: Iterable<T | Promise<T>>,
   mapper: (input: T, index: number, length: number) => Promise<U>,
   {
     /**
@@ -19,30 +28,44 @@ export async function runJobs<T, U>(
     );
   }
 
-  if (inputs.length === 0) {
-    return Promise.resolve([]);
-  }
+  const inputsArray: Array<T> = [];
+  const inputIterator = inputs[Symbol.iterator]();
+  const maybeLength = Array.isArray(inputs) ? inputs.length : null;
 
-  concurrency = Math.min(concurrency, inputs.length);
+  let iteratorDone = false;
+
+  async function readInput(): Promise<boolean> {
+    const nextResult = inputIterator.next();
+    if (nextResult.done) {
+      iteratorDone = true;
+      return false;
+    } else {
+      let value = nextResult.value;
+      if (isThenable<T>(value)) {
+        value = await value;
+      }
+      inputsArray.push(value);
+      return true;
+    }
+  }
 
   let unstartedIndex = 0;
 
-  const results = new Array(inputs.length);
+  const results = new Array(maybeLength || 0);
   const runningPromises = new Set();
   let error: Error | null = null;
 
-  function takeInput() {
+  async function takeInput() {
+    const read = await readInput();
+    if (!read) return;
+
     const inputIndex = unstartedIndex;
     unstartedIndex++;
 
-    const input = inputs[inputIndex];
-    const promise = mapper(input, inputIndex, inputs.length);
+    const input = inputsArray[inputIndex];
+    const promise = mapper(input, inputIndex, maybeLength || Infinity);
 
-    if (
-      typeof promise !== "object" ||
-      promise == null ||
-      typeof promise.then !== "function"
-    ) {
+    if (!isThenable(promise)) {
       throw new Error(
         "Mapper function passed into runJobs didn't return a Promise. The mapper function should always return a Promise. The easiest way to ensure this is the case is to make your mapper function an async function."
       );
@@ -61,21 +84,19 @@ export async function runJobs<T, U>(
     runningPromises.add(promiseWithMore);
   }
 
-  function proceed() {
-    if (unstartedIndex < inputs.length) {
-      while (runningPromises.size < concurrency) {
-        takeInput();
-      }
+  async function proceed() {
+    while (!iteratorDone && runningPromises.size < concurrency) {
+      await takeInput();
     }
   }
 
-  proceed();
+  await proceed();
   while (runningPromises.size > 0 && !error) {
     await Promise.race(runningPromises.values());
     if (error) {
       throw error;
     }
-    proceed();
+    await proceed();
   }
 
   if (error) {

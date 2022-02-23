@@ -10,7 +10,7 @@ Parallel/concurrent async work, optionally using multiple processes
 
 `runJobs` is kinda like `Promise.all`, but instead of running everything at once, it'll only run a few Promises at a time (you can choose how many to run at once). It's inspired by [Bluebird's Promise.map function](http://bluebirdjs.com/docs/api/promise.map.html).
 
-To use it, you pass in an array of inputs and a mapper function that transforms each input into a Promise. You can also optionally specify the maximum number of Promises to wait on at a time by passing an object with a `concurrency` property, which is a number. The concurrency defaults to 8.
+To use it, you pass in an iterable (array, set, generator function, etc) of inputs and a mapper function that transforms each input into a Promise. Any Promises within the iterable will be awaited before being passed into your mapper function. You can also optionally specify the maximum number of Promises to wait on at a time by passing an object with a `concurrency` property, which is a number. The concurrency defaults to 8.
 
 ```ts
 import { runJobs } from "parallel-park";

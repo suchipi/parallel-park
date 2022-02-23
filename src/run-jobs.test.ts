@@ -32,6 +32,44 @@ test("basic test", async () => {
   expect(results).toEqual([2, 3, 4, 5]);
 });
 
+test("iterable test (generator function)", async () => {
+  const genFn = function* () {
+    yield 1;
+    yield 2;
+    yield 3;
+  };
+
+  const results = await runJobs(genFn(), async (num) => {
+    return num + 1;
+  });
+
+  expect(results).toEqual([2, 3, 4]);
+});
+
+test("iterable test (set)", async () => {
+  const set = new Set([1, 2, 3]);
+
+  const results = await runJobs(set, async (num) => {
+    return num + 1;
+  });
+
+  expect(results).toEqual([2, 3, 4]);
+});
+
+test("iterable test (generator yielding a mix of numbers and promises)", async () => {
+  const genFn = function* () {
+    yield Promise.resolve(1);
+    yield 2;
+    yield Promise.resolve(3);
+  };
+
+  const results = await runJobs(genFn(), async (num) => {
+    return num + 1;
+  });
+
+  expect(results).toEqual([2, 3, 4]);
+});
+
 test("zero inputs", async () => {
   const results = await runJobs([], async (num) => {
     return num + 1;
