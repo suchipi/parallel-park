@@ -98,3 +98,16 @@ test("require in child process", async () => {
   });
   expect(result).toBe("Hello!");
 });
+
+test("extremely large inputs", async () => {
+  const result = await inChildProcess(
+    {
+      // A 'W' so big, Wario might not fit through the W door
+      W: "W".repeat(1024 * 1024),
+    },
+    ({ W }) => {
+      return W.length;
+    }
+  );
+  expect(result).toBe(1024 * 1024);
+});

@@ -11,7 +11,7 @@ type InChildProcess = {
   <Result>(functionToRun: () => Result | Promise<Result>): Promise<Result>;
 };
 
-export const inChildProcess: InChildProcess = (...args) => {
+export const inChildProcess: InChildProcess = (...args: Array<any>) => {
   const inputs = typeof args[0] === "function" ? {} : args[0];
   const functionToRun = typeof args[0] === "function" ? args[0] : args[1];
 
