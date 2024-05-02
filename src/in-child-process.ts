@@ -1,4 +1,6 @@
 import child_process from "child_process";
+import type * as stream from "stream";
+import { readUntilEnd } from "./read-until-end";
 
 const runnerPath = require.resolve("../dist/child-process-worker");
 
@@ -29,31 +31,31 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
 
   const here = new Error("in inChildProcess");
 
+  // TODO: could use stack trace parser here for more robustness
   const callingFileLine = here.stack!.split("\n").slice(2)[0];
   const matches = callingFileLine.match(/\(([^\)]+):\d+:\d+\)/);
   const [_, callingFile] = matches!;
 
-  const child = child_process.spawn(
-    process.argv[0],
-    [runnerPath, JSON.stringify(inputs), functionToRun.toString(), callingFile],
-    {
-      stdio: ["inherit", "inherit", "inherit", "pipe"],
-    }
-  );
+  const child = child_process.spawn(process.argv[0], [runnerPath], {
+    stdio: ["inherit", "inherit", "inherit", "pipe", "pipe"],
+  });
 
   return new Promise((resolve, reject) => {
     child.on("error", reject);
 
-    let receivedData = "";
-    const comms = child.stdio && child.stdio[3];
-    if (!comms) {
-      reject(
-        new Error("Failed to establish communication pipe with child process")
-      );
-    }
+    const commsOut: stream.Writable = child.stdio![3] as any;
+    const commsIn: stream.Readable = child.stdio![4] as any;
 
-    comms!.on("data", (chunk) => {
-      receivedData += chunk.toString();
+    child.on("spawn", () => {
+      commsOut.end(
+        JSON.stringify([inputs, functionToRun.toString(), callingFile]),
+        "utf-8"
+      );
+    });
+
+    let receivedData = "";
+    readUntilEnd(commsIn).then((data) => {
+      receivedData = data;
     });
 
     child.on("close", (code, signal) => {

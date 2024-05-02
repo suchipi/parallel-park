@@ -1,39 +1,38 @@
 import fs from "fs";
 import vm from "vm";
 import makeModuleEnv from "make-module-env";
+import makeDebug from "debug";
+import { readUntilEnd } from "./read-until-end";
 
-const comms = fs.createWriteStream(
+const debug = makeDebug("parallel-park:child-process-worker");
+
+const commsIn = fs.createReadStream(
   // @ts-ignore
   null,
   { fd: 3 }
 );
+const commsOut = fs.createWriteStream(
+  // @ts-ignore
+  null,
+  { fd: 4 }
+);
 
-const [inputsString, fnString, callingFile] = process.argv.slice(2);
+readUntilEnd(commsIn)
+  .then((data) => {
+    try {
+      const [inputs, fnString, callingFile] = JSON.parse(data);
+      onReady(inputs, fnString, callingFile);
+    } catch (err) {
+      onError(err as Error);
+    }
+  })
+  .catch(onError);
 
-function onSuccess(data: any) {
-  comms.write(JSON.stringify({ type: "success", data }));
-}
-
-function onError(error: Error) {
-  comms.write(
-    JSON.stringify({
-      type: "error",
-      error: {
-        name: error.name,
-        message: error.message,
-        stack: error.stack,
-      },
-    })
-  );
-}
-
-try {
+function onReady(inputs: any, fnString: string, callingFile: string) {
   const wrapperFn = vm.runInThisContext(
     `(function moduleWrapper(exports, require, module, __filename, __dirname) {
-return ${fnString};})`
+  return ${fnString};})`
   );
-  const inputs = JSON.parse(inputsString);
-
   const env = makeModuleEnv(callingFile);
   const fn = wrapperFn(
     env.exports,
@@ -53,6 +52,23 @@ return ${fnString};})`
   } else {
     onSuccess(result);
   }
-} catch (err) {
-  onError(err as Error);
+}
+
+function onSuccess(data: any) {
+  commsOut.write(JSON.stringify({ type: "success", data }));
+  commsOut.close();
+}
+
+function onError(error: Error) {
+  commsOut.write(
+    JSON.stringify({
+      type: "error",
+      error: {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      },
+    })
+  );
+  commsOut.close();
 }
