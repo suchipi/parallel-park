@@ -52,12 +52,12 @@ test("sync error bubbles up", async () => {
     expect(cleanStack(err.stack)).toMatchInlineSnapshot(`
 "Error: sad :(
     at inside (<function passed into inChildProcess>:4:14)
-    at <function passed into inChildProcess>:7:6
+    at <function passed into inChildProcess>:6:6
     at onReady (<rootDir>/dist/child-process-worker.js:34:20)
     at <rootDir>/dist/child-process-worker.js:22:9
     at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:79:27)
-    at doIt (<rootDir>/src/in-child-process.test.ts:45:12)
-    at Object.<anonymous> (<rootDir>/src/in-child-process.test.ts:49:11)
+    at doIt (<rootDir>/src/in-child-process.test.ts:45:26)
+    at Object.doIt (<rootDir>/src/in-child-process.test.ts:49:11)
     at new Promise (<anonymous>)"
 `);
   }
@@ -85,8 +85,8 @@ test("async error bubbles up", async () => {
     at onReady (<rootDir>/dist/child-process-worker.js:34:20)
     at <rootDir>/dist/child-process-worker.js:22:9
     at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:79:27)
-    at doIt (<rootDir>/src/in-child-process.test.ts:74:12)
-    at Object.<anonymous> (<rootDir>/src/in-child-process.test.ts:78:11)
+    at doIt (<rootDir>/src/in-child-process.test.ts:74:26)
+    at Object.doIt (<rootDir>/src/in-child-process.test.ts:78:11)
     at new Promise (<anonymous>)"
 `);
   }
