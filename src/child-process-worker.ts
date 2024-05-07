@@ -55,12 +55,11 @@ function onReady(inputs: any, fnString: string, callingFile: string) {
 }
 
 function onSuccess(data: any) {
-  commsOut.write(JSON.stringify({ type: "success", data }));
-  commsOut.close();
+  commsOut.end(JSON.stringify({ type: "success", data }));
 }
 
 function onError(error: Error) {
-  commsOut.write(
+  commsOut.end(
     JSON.stringify({
       type: "error",
       error: {
@@ -70,5 +69,4 @@ function onError(error: Error) {
       },
     })
   );
-  commsOut.close();
 }
