@@ -85,8 +85,8 @@ test("async error bubbles up", async () => {
     at onReady (<rootDir>/dist/child-process-worker.js:34:20)
     at <rootDir>/dist/child-process-worker.js:22:9
     at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:79:27)
-    at doIt (<rootDir>/src/in-child-process.test.ts:73:12)
-    at Object.<anonymous> (<rootDir>/src/in-child-process.test.ts:77:11)
+    at doIt (<rootDir>/src/in-child-process.test.ts:74:12)
+    at Object.<anonymous> (<rootDir>/src/in-child-process.test.ts:78:11)
     at new Promise (<anonymous>)"
 `);
   }
@@ -112,4 +112,11 @@ test("extremely large inputs", async () => {
     }
   );
   expect(result).toBe(1024 * 1024);
+});
+
+test("extremely large outputs", async () => {
+  const result = await inChildProcess(() => {
+    return "W".repeat(1024 * 1024);
+  });
+  expect(result.length).toBe(1024 * 1024);
 });
