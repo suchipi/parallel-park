@@ -1,3 +1,6 @@
+import makeDebug from "debug";
+const debug = makeDebug("parallel-park:run-jobs");
+
 function isThenable<T>(value: unknown): value is Promise<T> {
   return (
     typeof value === "object" &&
@@ -8,6 +11,8 @@ function isThenable<T>(value: unknown): value is Promise<T> {
 }
 
 const NOTHING = Symbol("NOTHING");
+
+let runJobsCallId = 0;
 
 export async function runJobs<T, U>(
   inputs: Iterable<T | Promise<T>> | AsyncIterable<T | Promise<T>>,
@@ -24,6 +29,11 @@ export async function runJobs<T, U>(
     concurrency?: number;
   } = {}
 ): Promise<Array<U>> {
+  const callId = runJobsCallId;
+  runJobsCallId++;
+
+  debug(`runJobs called (callId: ${callId})`, { inputs, mapper, concurrency });
+
   if (concurrency < 1) {
     throw new Error(
       "Concurrency can't be less than one; that doesn't make any sense."
@@ -39,6 +49,7 @@ export async function runJobs<T, U>(
   let iteratorDone = false;
 
   async function readInput(): Promise<boolean> {
+    debug(`reading next input (callId: ${callId})`);
     let nextResult = inputIterator.next();
     if (isThenable(nextResult)) {
       nextResult = await nextResult;
@@ -70,6 +81,7 @@ export async function runJobs<T, U>(
     unstartedIndex++;
 
     const input = inputsArray[inputIndex];
+    debug(`mapping input into Promise (callId: ${callId})`);
     const promise = mapper(input, inputIndex, maybeLength || Infinity);
 
     if (!isThenable(promise)) {
@@ -80,10 +92,17 @@ export async function runJobs<T, U>(
 
     const promiseWithMore = promise.then(
       (result) => {
+        debug(`child Promise resolved for input (callId: ${callId}):`, input);
         results[inputIndex] = result;
         runningPromises.delete(promiseWithMore);
       },
       (err) => {
+        debug(
+          `child Promise rejected for input (callId: ${callId}):`,
+          input,
+          "with error:",
+          err
+        );
         runningPromises.delete(promiseWithMore);
         error = err;
       }
@@ -101,14 +120,17 @@ export async function runJobs<T, U>(
   while (runningPromises.size > 0 && !error) {
     await Promise.race(runningPromises.values());
     if (error) {
+      debug(`throwing error (callId: ${callId})`);
       throw error;
     }
     await proceed();
   }
 
   if (error) {
+    debug(`throwing error (callId: ${callId})`);
     throw error;
   }
 
+  debug(`all done (callId: ${callId})`);
   return results;
 }

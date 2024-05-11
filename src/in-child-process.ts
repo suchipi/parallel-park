@@ -1,7 +1,10 @@
 import child_process from "child_process";
 import type * as stream from "stream";
 import { ParsedError } from "@suchipi/error-utils";
+import makeDebug from "debug";
 import { readUntilEnd } from "./read-until-end";
+
+const debug = makeDebug("parallel-park:in-child-process");
 
 const runnerPath = require.resolve("../dist/child-process-worker");
 
@@ -35,6 +38,8 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
   const callingFrame = here.stackFrames[1];
   const callingFile = callingFrame?.fileName ?? "unknown file";
 
+  debug("spawning child process:", [process.argv[0], runnerPath]);
+
   const child = child_process.spawn(process.argv[0], [runnerPath], {
     stdio: ["inherit", "inherit", "inherit", "pipe", "pipe"],
   });
@@ -46,18 +51,24 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
     const commsIn: stream.Readable = child.stdio![4] as any;
 
     child.on("spawn", () => {
-      commsOut.end(
-        JSON.stringify([inputs, functionToRun.toString(), callingFile]),
-        "utf-8"
-      );
+      const dataToSend = JSON.stringify([
+        inputs,
+        functionToRun.toString(),
+        callingFile,
+      ]);
+      debug("sending inputs to child process:", dataToSend);
+      commsOut.end(dataToSend, "utf-8");
     });
 
     let receivedData = "";
     readUntilEnd(commsIn).then((data) => {
+      debug("received data from child process");
       receivedData = data;
     });
 
     child.on("close", (code, signal) => {
+      debug("child process closed:", { code, signal });
+
       if (code !== 0) {
         reject(
           new Error(
@@ -68,6 +79,7 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
           )
         );
       } else {
+        debug("parsing received data from child process...");
         const result = JSON.parse(receivedData);
         switch (result.type) {
           case "success": {
@@ -90,7 +102,7 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
                   .map((line) => {
                     if (/evalmachine/.test(line)) {
                       const lineWithoutEvalMachine = line.replace(
-                        /evalmachine(\.<anonymous>)?/,
+                        /evalmachine(?:\.<anonymous>)?/,
                         "<function passed into inChildProcess>"
                       );
 
