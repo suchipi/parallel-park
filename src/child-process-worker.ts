@@ -3,6 +3,7 @@ import vm from "vm";
 import makeModuleEnv from "make-module-env";
 import makeDebug from "debug";
 import { readUntilEnd } from "./read-until-end";
+import path from "path";
 
 const debug = makeDebug("parallel-park:child-process-worker");
 
@@ -17,8 +18,10 @@ const commsOut = fs.createWriteStream(
   { fd: 4 }
 );
 
+debug("reading input data...");
 readUntilEnd(commsIn)
   .then((data) => {
+    debug("parsing input data...");
     try {
       const [inputs, fnString, callingFile] = JSON.parse(data);
       onReady(inputs, fnString, callingFile);
@@ -29,6 +32,13 @@ readUntilEnd(commsIn)
   .catch(onError);
 
 function onReady(inputs: any, fnString: string, callingFile: string) {
+  debug("in onReady", { inputs, fnString, callingFile });
+
+  // Relevant when callingFile is eg. "REPL2" (from Node.js repl)
+  if (!path.isAbsolute(callingFile)) {
+    callingFile = path.join(process.cwd(), "fake-path.js");
+  }
+
   const wrapperFn = vm.runInThisContext(
     `(function moduleWrapper(exports, require, module, __filename, __dirname) {
   return ${fnString};})`
@@ -55,10 +65,14 @@ function onReady(inputs: any, fnString: string, callingFile: string) {
 }
 
 function onSuccess(data: any) {
+  debug("in onSuccess", { data });
+
   commsOut.end(JSON.stringify({ type: "success", data }));
 }
 
 function onError(error: Error) {
+  debug("in onError", { error });
+
   commsOut.end(
     JSON.stringify({
       type: "error",
