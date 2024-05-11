@@ -9,24 +9,24 @@ test("using inChildProcess and runJobs together", async () => {
   );
 
   expect(results).toMatchInlineSnapshot(`
-    Array [
-      Object {
+    [
+      {
         "input": 1,
         "value": 5,
       },
-      Object {
+      {
         "input": 2,
         "value": 6,
       },
-      Object {
+      {
         "input": 3,
         "value": 7,
       },
-      Object {
+      {
         "input": 4,
         "value": 8,
       },
-      Object {
+      {
         "input": 5,
         "value": 9,
       },
