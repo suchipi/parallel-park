@@ -38,6 +38,7 @@
     "typescript": "^5.4.5"
   },
   "dependencies": {
+    "@suchipi/error-utils": "^0.2.0",
     "make-module-env": "^1.1.3"
   }
 }

@@ -1,5 +1,6 @@
 import child_process from "child_process";
 import type * as stream from "stream";
+import { ParsedError } from "@suchipi/error-utils";
 import { readUntilEnd } from "./read-until-end";
 
 const runnerPath = require.resolve("../dist/child-process-worker");
@@ -29,12 +30,10 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
     );
   }
 
-  const here = new Error("in inChildProcess");
+  const here = new ParsedError(new Error("here"));
 
-  // TODO: could use stack trace parser here for more robustness
-  const callingFileLine = here.stack!.split("\n").slice(2)[0];
-  const matches = callingFileLine.match(/\(([^\)]+):\d+:\d+\)/);
-  const [_, callingFile] = matches!;
+  const callingFrame = here.stackFrames[1];
+  const callingFile = callingFrame?.fileName ?? "unknown file";
 
   const child = child_process.spawn(process.argv[0], [runnerPath], {
     stdio: ["inherit", "inherit", "inherit", "pipe", "pipe"],
