@@ -55,7 +55,7 @@ test("sync error bubbles up", async () => {
     at <function passed into inChildProcess>:6:6
     at onReady (<rootDir>/dist/child-process-worker.js:42:20)
     at <rootDir>/dist/child-process-worker.js:25:9
-    at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:90:27)
+    at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:109:27)
     at doIt (<rootDir>/src/in-child-process.test.ts:45:26)
     at Object.doIt (<rootDir>/src/in-child-process.test.ts:49:11)"
 `);
@@ -83,7 +83,7 @@ test("async error bubbles up", async () => {
     at child (<function passed into inChildProcess>:2:12)
     at onReady (<rootDir>/dist/child-process-worker.js:42:20)
     at <rootDir>/dist/child-process-worker.js:25:9
-    at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:90:27)
+    at ChildProcess.<anonymous> (<rootDir>/src/in-child-process.ts:109:27)
     at doIt (<rootDir>/src/in-child-process.test.ts:73:26)
     at Object.doIt (<rootDir>/src/in-child-process.test.ts:77:11)"
 `);

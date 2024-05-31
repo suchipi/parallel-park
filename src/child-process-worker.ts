@@ -32,7 +32,7 @@ readUntilEnd(commsIn)
   .catch(onError);
 
 function onReady(inputs: any, fnString: string, callingFile: string) {
-  debug("in onReady", { inputs, fnString, callingFile });
+  debug("in onReady %o", { inputs, fnString, callingFile });
 
   // Relevant when callingFile is eg. "REPL2" (from Node.js repl)
   if (!path.isAbsolute(callingFile)) {
@@ -65,13 +65,13 @@ function onReady(inputs: any, fnString: string, callingFile: string) {
 }
 
 function onSuccess(data: any) {
-  debug("in onSuccess", { data });
+  debug("in onSuccess %o", { data });
 
   commsOut.end(JSON.stringify({ type: "success", data }));
 }
 
 function onError(error: Error) {
-  debug("in onError", { error });
+  debug("in onError %o", { error });
 
   commsOut.end(
     JSON.stringify({

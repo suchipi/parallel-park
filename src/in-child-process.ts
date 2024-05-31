@@ -2,6 +2,7 @@ import child_process from "child_process";
 import type * as stream from "stream";
 import { ParsedError } from "@suchipi/error-utils";
 import makeDebug from "debug";
+import util from "util";
 import { readUntilEnd } from "./read-until-end";
 
 const debug = makeDebug("parallel-park:in-child-process");
@@ -38,7 +39,7 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
   const callingFrame = here.stackFrames[1];
   const callingFile = callingFrame?.fileName ?? "unknown file";
 
-  debug("spawning child process:", [process.argv[0], runnerPath]);
+  debug("spawning child process: %o", [process.argv[0], runnerPath]);
 
   const child = child_process.spawn(process.argv[0], [runnerPath], {
     stdio: ["inherit", "inherit", "inherit", "pipe", "pipe"],
@@ -56,18 +57,18 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
         functionToRun.toString(),
         callingFile,
       ]);
-      debug("sending inputs to child process:", dataToSend);
+      debug("sending inputs to child process: %o", dataToSend);
       commsOut.end(dataToSend, "utf-8");
     });
 
     let receivedData = "";
     readUntilEnd(commsIn).then((data) => {
-      debug("received data from child process");
+      debug("received data from child process: %o", data);
       receivedData = data;
     });
 
     child.on("close", (code, signal) => {
-      debug("child process closed:", { code, signal });
+      debug("child process closed: %o", { code, signal });
 
       if (code !== 0) {
         reject(
@@ -80,13 +81,31 @@ export const inChildProcess: InChildProcess = (...args: Array<any>) => {
         );
       } else {
         debug("parsing received data from child process...");
-        const result = JSON.parse(receivedData);
+        let result: any;
+        try {
+          result = JSON.parse(receivedData);
+        } catch (err) {
+          reject(
+            new Error(
+              `parallel-park error: failed to parse received data as JSON. data was: ${util.inspect(
+                receivedData,
+                { colors: true, depth: Infinity }
+              )}`
+            )
+          );
+          return;
+        }
         switch (result.type) {
           case "success": {
+            debug(
+              "child process finished successfully with result: %o",
+              result.data
+            );
             resolve(result.data);
             break;
           }
           case "error": {
+            debug("child process errored: %o", result.error);
             const error = new Error(result.error.message);
             Object.defineProperty(error, "name", { value: result.error.name });
             Object.defineProperty(error, "stack", {
