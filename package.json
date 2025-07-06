@@ -28,18 +28,18 @@
     "url": "git+https://github.com/suchipi/parallel-park.git"
   },
   "devDependencies": {
-    "@babel/core": "^7.24.5",
-    "@babel/preset-env": "^7.24.5",
-    "@babel/preset-typescript": "^7.24.1",
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "@babel/preset-typescript": "^7.27.1",
     "@types/debug": "^4.1.12",
-    "@types/jest": "^29.5.12",
-    "@types/node": "^20.12.10",
-    "babel-jest": "^29.7.0",
-    "jest": "^29.7.0",
-    "typescript": "^5.4.5"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.0.10",
+    "babel-jest": "^30.0.4",
+    "jest": "^30.0.4",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@suchipi/error-utils": "^0.2.0",
+    "@suchipi/error-utils": "^0.2.1",
     "make-module-env": "^1.1.3"
   }
 }
